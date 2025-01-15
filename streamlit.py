@@ -227,7 +227,15 @@ def robust_date_parse(df: pd.DataFrame, colname: str) -> (pd.DataFrame, pd.DataF
       - df_invalid: rows where date parse failed (NaT)
     """
     df[colname] = df[colname].astype(str).str.strip()
-    df[colname] = pd.to_datetime(df[colname], errors="coerce", utc=True, infer_datetime_format=True)
+    
+    # Specify the datetime format if known, e.g., 'YYYY-MM-DD'
+    # If format varies, you may need to handle multiple formats or omit the 'format' parameter
+    try:
+        df[colname] = pd.to_datetime(df[colname], errors="coerce", utc=True, format="%Y-%m-%d")
+    except ValueError:
+        # If the format is not consistent, omit the 'format' parameter
+        df[colname] = pd.to_datetime(df[colname], errors="coerce", utc=True)
+    
     df[colname] = df[colname].dt.tz_localize(None)
 
     df_invalid = df[df[colname].isna()].copy()
@@ -260,7 +268,7 @@ def preprocess_order_data(df: pd.DataFrame) -> pd.DataFrame:
         st.session_state["invalid_date_rows_orders"] = invalid_df
     df = valid_df
 
-    df["Order Total"] = pd.to_numeric(df["Order Total"], errors="coerce").round(2)
+    df["Order Total"] = pd.to_numeric(df["Order Total"], errors="coerce").fillna(0).infer_objects(copy=False).round(2)
     df = df.dropna(subset=["Order Total"])
 
     df["Customer ID"] = df["Customer ID"].astype(str).str.strip()
@@ -293,7 +301,7 @@ def preprocess_marketing_spend(df: pd.DataFrame) -> pd.DataFrame:
 
     df = valid_df
     df["Date"] = df["Date"].dt.floor("D")
-    df["Marketing Spend"] = pd.to_numeric(df["Marketing Spend"], errors="coerce").fillna(0)
+    df["Marketing Spend"] = pd.to_numeric(df["Marketing Spend"], errors="coerce").fillna(0).infer_objects(copy=False)
     df = df.groupby("Date")["Marketing Spend"].sum().reset_index()
     return df
 
@@ -1451,7 +1459,7 @@ def plot_sku_cross_sell_table(purchased: bool = False, sku_selected: str = "All"
                     ret["3rd Most Commonly Purchased in Next Order"] = ""
         return pd.Series(ret)
 
-    final_df = top_3.groupby("SKU").apply(top_3_formatter).reset_index()
+    final_df = top_3.groupby("SKU", group_keys=False).apply(top_3_formatter).reset_index()
     final_df.rename(columns={"SKU": "First Purchase SKU"}, inplace=True)
 
     st.dataframe(final_df, use_container_width=True)
@@ -1761,6 +1769,7 @@ def main():
                         else:
                             ms_xl = pd.ExcelFile(io.BytesIO(file_bytes))
                             raw_spend = ms_xl.parse(ms_xl.sheet_names[0])
+
                         st.session_state["marketing_spend_df"] = preprocess_marketing_spend(raw_spend)
                         st.success("Marketing Spend reloaded successfully!")
                     except Exception as ex:

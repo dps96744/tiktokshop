@@ -1773,7 +1773,7 @@ def main():
         # Title with smaller font
         st.markdown("""
             <h3>
-                TikTok Shop Customer Analytics Tool  |  cohortanalysis.ai 
+                Calculate TikTok Shop Customer Lifetime Value & Retetion in Seconds 
             </h3>
         """, unsafe_allow_html=True)
 

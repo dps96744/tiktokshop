@@ -1,1 +1,8 @@
-
+streamlit
+pandas
+numpy
+plotly
+stripe
+openpyxl
+boto3
+kaleido

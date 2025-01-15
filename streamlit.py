@@ -1505,10 +1505,10 @@ def plot_charts_with_partial_gating(
         "Average Lifetime Value (LTV) by Cohort (Heatmap)": "The average lifetime value of customers in each cohort by month after first purchase.",
         "Average Retention by Cohort (Heatmap)": "The percentage of customers in each cohort making a purchase by month after first purchase. Month 1 is excluded as it's 100% by default.",
         "LTV:CAC Ratio by Cohort": "Customer Lifetime Value / Customer Acquisition Cost. Think of this as your cumulative ROAS. Most businesses aim for at least a 3x on this metric.",
-        "CAC & New Customers vs. Repeat Customers": "New vs. repeat customers, plus CAC for the month (Note: CAC is only shown if sku filter is set to All).",
+        "CAC & New Customers vs. Repeat Customers": "New vs. repeat customers, plus CAC for the month (Note: CAC is only shown if SKU filter is set to All).",
         "Customer Retention During First 5 Orders": "Measure of customer stickiness over time. Most businesses see their retention increase as customers make more orders.",
         "Time Between First and Second Purchase": "Distribution of timing of second orders from your customers.",
-        "What Customers Buy After Their First Order": "See what customers are most likely to purchase next based on their first purchase sku.",
+        "What Customers Buy After Their First Order": "See what customers are most likely to purchase next based on their first purchase SKU.",
         "Cohort Size vs. Average Lifetime Value (LTV) by Cohort": "Is customer quality changing as you scale customer acquisition?",
         "Average Lifetime Value (LTV) by Cohort (Line)": "See how customer lifetime value is evolving across cohorts",
         "Average Retention by Cohort (Line)": "See how customer retention is evolving across cohorts"

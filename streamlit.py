@@ -1,10 +1,6 @@
 ################################################################################
 # (1) COHORT ANALYSIS TOOL - PARTIAL GATING WITH STRIPE & AWS S3
-#     Complete codebase with recent adjustments:
-#       - Title font slightly reduced
-#       - Background color reverted to previous default (no #034546)
-#       - Fixed extra “%%” in Retention chart
-#       - Partial gating for multiple orders chart
+#     Complete codebase with recent adjustments + small fix to show clear errors
 ################################################################################
 
 import streamlit as st
@@ -749,7 +745,7 @@ def plot_retention_heatmap_with_size(ret_df: pd.DataFrame, avg_ltv: pd.DataFrame
         colorscale="RdBu",
         text=text_vals,
         texttemplate="%{text}",
-        hovertemplate="Cohort: %{y}<br>%{x}: %{z:.2f}%<extra></extra>"
+        hovertemplate="Cohort: %{y}<br>%{x}: %{z:.2f}%%<extra></extra>"
     ))
     fig.update_layout(
         height=fig_height,
@@ -1176,7 +1172,7 @@ def plot_percent_multiple_orders(
 ) -> bool:
     """
     Show what % of customers place multiple orders (1..5).
-    If not purchased, only show up to 3 orders. If purchased, show up to 5.
+    If not purchased, only show up to 3 orders. If purchased, up to 5.
     """
     if order_df.empty:
         st.write("No data for 'Customer Retention During First 5 Orders'.")
@@ -1747,7 +1743,8 @@ def main():
                                     break
                             if not found_sheet:
                                 st.error(f"No sheet found with required columns: {needed_cols}")
-                                st.stop()
+                                st.session_state["show_refresh_spinner"] = False
+                                return
 
                         st.session_state["order_data_df"] = preprocess_order_data(raw_order)
                         st.success("Order Data reloaded successfully!")
@@ -1844,6 +1841,10 @@ def main():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+    # --- FIX APPLIED HERE ---
+    # Instead of calling st.stop(), we just show the error and return
+    # so the user sees exactly what's wrong instead of the app silently halting.
+
     if order_data_file is not None:
         with st.spinner("Parsing and uploading Order Data..."):
             try:
@@ -1851,7 +1852,9 @@ def main():
                 filename = order_data_file.name
                 success_up = upload_file_to_s3(st.session_state["upload_id"], file_bytes, filename)
                 if not success_up:
-                    st.stop()
+                    st.error("Failed to upload order file to S3. Please check logs.")
+                    return  # <-- replaced st.stop()
+
                 st.session_state["order_data_filename"] = filename
 
                 if filename.lower().endswith(".csv"):
@@ -1877,13 +1880,13 @@ def main():
                             break
                     if not found_sheet:
                         st.error(f"No sheet found with required columns: {needed_cols}")
-                        st.stop()
+                        return  # <-- replaced st.stop()
 
                 st.session_state["order_data_df"] = preprocess_order_data(raw_order)
                 st.success("Order Data uploaded and parsed successfully!")
             except Exception as ex:
                 st.error(f"Failed to parse Order Data: {ex}")
-                st.stop()
+                return  # <-- replaced st.stop()
 
     if marketing_spend_file is not None:
         with st.spinner("Parsing and uploading Marketing Spend..."):
@@ -1892,7 +1895,9 @@ def main():
                 filename = marketing_spend_file.name
                 success_up = upload_file_to_s3(st.session_state["upload_id"], file_bytes, filename)
                 if not success_up:
-                    st.stop()
+                    st.error("Failed to upload marketing file to S3. Please check logs.")
+                    return  # <-- replaced st.stop()
+
                 st.session_state["marketing_spend_filename"] = filename
 
                 if filename.lower().endswith(".csv"):
@@ -1908,6 +1913,7 @@ def main():
                 st.success("Marketing Spend uploaded and parsed successfully!")
             except Exception as ex:
                 st.error(f"Failed to parse Marketing Spend: {ex}")
+                return  # <-- replaced st.stop()
 
     purchased_any = len(st.session_state["purchased_items"]) > 0
 
@@ -1939,7 +1945,7 @@ def main():
 
     if order_data.empty:
         st.info("Please upload your Order Data to proceed.")
-        st.stop()
+        return  # <-- replaced st.stop()
 
     purchased_something = (
         "Unlock All Charts" in st.session_state["purchased_items"] or
@@ -2024,7 +2030,7 @@ def main():
             st.session_state["ret_df_full"] = ret_df
         except Exception as ex:
             st.error(f"An unexpected error occurred during metric calculations: {ex}")
-            st.stop()
+            return
 
     if "SKU" in order_data.columns:
         st.write("### FILTER CHARTS BY SKU")

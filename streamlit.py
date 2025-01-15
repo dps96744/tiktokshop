@@ -239,7 +239,7 @@ def robust_date_parse(df: pd.DataFrame, colname: str) -> (pd.DataFrame, pd.DataF
 ################################################################################
 @st.cache_data
 def preprocess_order_data(df: pd.DataFrame) -> pd.DataFrame:
-    needed = ["Purchase Date", "Buyer Email", "Item Price", "Merchant SKU", "Amazon Order Id"]
+    needed = ["Shipped Time", "Buyer Username", "Seller SKU", "Order ID", "SKU Subtotal After Discount"]
     missing = [c for c in needed if c not in df.columns]
     if missing:
         raise ValueError(f"Missing columns in Order Data: {missing}")
@@ -247,11 +247,11 @@ def preprocess_order_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=needed, how="any").copy()
 
     rename_map = {
-        "Purchase Date": "Date",
-        "Buyer Email": "Customer ID",
-        "Item Price": "Order Total",
-        "Merchant SKU": "SKU",
-        "Amazon Order Id": "Order ID"
+        "Shipped Time": "Date",
+        "Buyer Username": "Customer ID",
+        "Seller SKU": "SKU",
+        "Order ID": "Order ID",
+        "SKU Subtotal After Discount": "Order Total"
     }
     df.rename(columns=rename_map, inplace=True)
 
@@ -1724,11 +1724,11 @@ def main():
                         else:
                             xls = pd.ExcelFile(io.BytesIO(file_bytes))
                             needed_cols = [
-                                "Purchase Date",
-                                "Buyer Email",
-                                "Item Price",
-                                "Merchant SKU",
-                                "Amazon Order Id"
+                                "Shipped Time",
+                                "Buyer Username",
+                                "Seller SKU",
+                                "Order ID",
+                                "SKU Subtotal After Discount"
                             ]
                             found_sheet = None
                             for sheet in xls.sheet_names:
@@ -1773,7 +1773,7 @@ def main():
         # Title with smaller font
         st.markdown("""
             <h3>
-                Calculate TikTok Shop Customer Lifetime Value & Retention in Seconds 
+                TikTok Shop Customer Analytics Tool  |  cohortanalysis.ai 
             </h3>
         """, unsafe_allow_html=True)
 
@@ -1789,7 +1789,8 @@ def main():
         if st.session_state["order_data_df"].empty:
             st.markdown(
                 "<p style='font-size:16px; font-weight:bold; margin-bottom:4px;'>"
-                "UPLOAD YOUR ORDER DATA (CSV OR XLSX)</p>",
+                "UPLOAD YOUR ORDER DATA (CSV OR XLSX)"
+                "</p>",
                 unsafe_allow_html=True
             )
             order_data_file = st.file_uploader(
@@ -1800,11 +1801,11 @@ def main():
             st.markdown("""
                 <p style="font-size:14px;">
                     <strong>Required Columns (make sure they're named this way):</strong><br/>
-                    <strong>1:</strong> Purchase Date<br/>
-                    <strong>2:</strong> Buyer Email<br/>
-                    <strong>3:</strong> Item Price<br/>
-                    <strong>4:</strong> Merchant SKU<br/>
-                    <strong>5:</strong> Amazon Order Id<br/>
+                    <strong>1:</strong> Shipped Time<br/>
+                    <strong>2:</strong> Buyer Username<br/>
+                    <strong>3:</strong> Seller SKU<br/>
+                    <strong>4:</strong> Order ID<br/>
+                    <strong>5:</strong> SKU Subtotal After Discount<br/>
                 </p>
             """, unsafe_allow_html=True)
         else:
@@ -1825,9 +1826,7 @@ def main():
             )
             st.markdown("""
                 <p style="font-size:14px;">
-                    <strong>Required Columns:</strong><br/>
-                    <strong>1:</strong> Date<br/>
-                    <strong>2:</strong> Marketing Spend
+                    Need help? Watch this <a href="https://www.youtube.com/watch?v=YOUR_VIDEO_LINK" target="_blank">30 sec video</a>
                 </p>
             """, unsafe_allow_html=True)
         else:
@@ -1854,11 +1853,11 @@ def main():
                 else:
                     xls = pd.ExcelFile(io.BytesIO(file_bytes))
                     needed_cols = [
-                        "Purchase Date",
-                        "Buyer Email",
-                        "Item Price",
-                        "Merchant SKU",
-                        "Amazon Order Id"
+                        "Shipped Time",
+                        "Buyer Username",
+                        "Seller SKU",
+                        "Order ID",
+                        "SKU Subtotal After Discount"
                     ]
                     found_sheet = None
                     for sheet in xls.sheet_names:
@@ -1972,7 +1971,7 @@ def main():
                     elif item == "CAC & New Customers vs. Repeat Customers":
                         df_content = st.session_state.get("order_data_df", pd.DataFrame())
                         fig = st.session_state.get("fig_cac_new_repeat")
-                    elif item == "Percent of Customers Making Multiple Orders":
+                    elif item == "Customer Retention During First 5 Orders":
                         df_content = st.session_state.get("order_data_df", pd.DataFrame())
                         fig = st.session_state.get("fig_percent_multiple_orders")
                     elif item == "Time Between First and Second Purchase":

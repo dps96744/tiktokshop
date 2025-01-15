@@ -1773,7 +1773,7 @@ def main():
         # Title with smaller font
         st.markdown("""
             <h3>
-                Amazon Customer Analytics Tool | cohortanalysis.ai 
+                TikTok Shop Customer Analytics Tool  |  cohortanalysis.ai 
             </h3>
         """, unsafe_allow_html=True)
 

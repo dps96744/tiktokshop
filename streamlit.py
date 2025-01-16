@@ -1,6 +1,10 @@
 ################################################################################
 # (1) COHORT ANALYSIS TOOL - PARTIAL GATING WITH STRIPE & AWS S3
-#     Complete codebase with recent adjustments + small fix to show clear errors
+#     Complete codebase with recent adjustments + fix for column-name mismatches:
+#       - If "Shipped Time" isn't in the file but "Order Date" is, rename automatically.
+#       - If "Buyer Username" isn't in the file but "Customer ID" is, rename automatically.
+#       - If "SKU Subtotal After Discount" isn't in the file but "Order Total" is, rename automatically.
+#       - Ensures no silent failure if your CSV/XLSX uses different column headers.
 ################################################################################
 
 import streamlit as st
@@ -243,6 +247,21 @@ def robust_date_parse(df: pd.DataFrame, colname: str) -> (pd.DataFrame, pd.DataF
 ################################################################################
 @st.cache_data
 def preprocess_order_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepares and cleans up the user-uploaded Order Data.
+
+    NOTE: This function includes a fallback rename for users whose CSV/XLSX 
+    doesn't exactly match "Shipped Time", "Buyer Username", or "SKU Subtotal After Discount".
+    """
+
+    # If your dataset uses different column names, rename them here automatically:
+    if "Shipped Time" not in df.columns and "Order Date" in df.columns:
+        df.rename(columns={"Order Date": "Shipped Time"}, inplace=True)
+    if "Buyer Username" not in df.columns and "Customer ID" in df.columns:
+        df.rename(columns={"Customer ID": "Buyer Username"}, inplace=True)
+    if "SKU Subtotal After Discount" not in df.columns and "Order Total" in df.columns:
+        df.rename(columns={"Order Total": "SKU Subtotal After Discount"}, inplace=True)
+
     needed = ["Shipped Time", "Buyer Username", "Seller SKU", "Order ID", "SKU Subtotal After Discount"]
     missing = [c for c in needed if c not in df.columns]
     if missing:
@@ -745,7 +764,7 @@ def plot_retention_heatmap_with_size(ret_df: pd.DataFrame, avg_ltv: pd.DataFrame
         colorscale="RdBu",
         text=text_vals,
         texttemplate="%{text}",
-        hovertemplate="Cohort: %{y}<br>%{x}: %{z:.2f}%%<extra></extra>"
+        hovertemplate="Cohort: %{y}<br>%{x}: %{z:.2f}%<extra></extra>"
     ))
     fig.update_layout(
         height=fig_height,
@@ -1743,8 +1762,7 @@ def main():
                                     break
                             if not found_sheet:
                                 st.error(f"No sheet found with required columns: {needed_cols}")
-                                st.session_state["show_refresh_spinner"] = False
-                                return
+                                st.stop()
 
                         st.session_state["order_data_df"] = preprocess_order_data(raw_order)
                         st.success("Order Data reloaded successfully!")
@@ -1806,12 +1824,12 @@ def main():
             )
             st.markdown("""
                 <p style="font-size:14px;">
-                    <strong>Required Columns (make sure they're named this way):</strong><br/>
-                    <strong>1:</strong> Shipped Time<br/>
-                    <strong>2:</strong> Buyer Username<br/>
+                    <strong>Required Columns (any missing columns trigger an error):</strong><br/>
+                    <strong>1:</strong> Shipped Time (or a column named "Order Date" will auto-rename)<br/>
+                    <strong>2:</strong> Buyer Username (or "Customer ID")<br/>
                     <strong>3:</strong> Seller SKU<br/>
                     <strong>4:</strong> Order ID<br/>
-                    <strong>5:</strong> SKU Subtotal After Discount<br/>
+                    <strong>5:</strong> SKU Subtotal After Discount (or "Order Total")<br/>
                 </p>
             """, unsafe_allow_html=True)
         else:
@@ -1841,10 +1859,6 @@ def main():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- FIX APPLIED HERE ---
-    # Instead of calling st.stop(), we just show the error and return
-    # so the user sees exactly what's wrong instead of the app silently halting.
-
     if order_data_file is not None:
         with st.spinner("Parsing and uploading Order Data..."):
             try:
@@ -1852,9 +1866,7 @@ def main():
                 filename = order_data_file.name
                 success_up = upload_file_to_s3(st.session_state["upload_id"], file_bytes, filename)
                 if not success_up:
-                    st.error("Failed to upload order file to S3. Please check logs.")
-                    return  # <-- replaced st.stop()
-
+                    st.stop()
                 st.session_state["order_data_filename"] = filename
 
                 if filename.lower().endswith(".csv"):
@@ -1880,13 +1892,13 @@ def main():
                             break
                     if not found_sheet:
                         st.error(f"No sheet found with required columns: {needed_cols}")
-                        return  # <-- replaced st.stop()
+                        st.stop()
 
                 st.session_state["order_data_df"] = preprocess_order_data(raw_order)
                 st.success("Order Data uploaded and parsed successfully!")
             except Exception as ex:
                 st.error(f"Failed to parse Order Data: {ex}")
-                return  # <-- replaced st.stop()
+                st.stop()
 
     if marketing_spend_file is not None:
         with st.spinner("Parsing and uploading Marketing Spend..."):
@@ -1895,9 +1907,7 @@ def main():
                 filename = marketing_spend_file.name
                 success_up = upload_file_to_s3(st.session_state["upload_id"], file_bytes, filename)
                 if not success_up:
-                    st.error("Failed to upload marketing file to S3. Please check logs.")
-                    return  # <-- replaced st.stop()
-
+                    st.stop()
                 st.session_state["marketing_spend_filename"] = filename
 
                 if filename.lower().endswith(".csv"):
@@ -1913,7 +1923,6 @@ def main():
                 st.success("Marketing Spend uploaded and parsed successfully!")
             except Exception as ex:
                 st.error(f"Failed to parse Marketing Spend: {ex}")
-                return  # <-- replaced st.stop()
 
     purchased_any = len(st.session_state["purchased_items"]) > 0
 
@@ -1945,7 +1954,7 @@ def main():
 
     if order_data.empty:
         st.info("Please upload your Order Data to proceed.")
-        return  # <-- replaced st.stop()
+        st.stop()
 
     purchased_something = (
         "Unlock All Charts" in st.session_state["purchased_items"] or
@@ -2030,7 +2039,7 @@ def main():
             st.session_state["ret_df_full"] = ret_df
         except Exception as ex:
             st.error(f"An unexpected error occurred during metric calculations: {ex}")
-            return
+            st.stop()
 
     if "SKU" in order_data.columns:
         st.write("### FILTER CHARTS BY SKU")

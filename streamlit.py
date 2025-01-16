@@ -262,7 +262,7 @@ def preprocess_order_data(df: pd.DataFrame) -> pd.DataFrame:
     if "SKU Subtotal After Discount" not in df.columns and "Order Total" in df.columns:
         df.rename(columns={"Order Total": "SKU Subtotal After Discount"}, inplace=True)
 
-    needed = ["Shipped Time", "Buyer Username", "Seller SKU", "Order ID", "SKU Subtotal After Discount"]
+    needed = ["Shipped Time", "Buyer Username", "SKU ID", "Order ID", "SKU Subtotal After Discount"]
     missing = [c for c in needed if c not in df.columns]
     if missing:
         raise ValueError(f"Missing columns in Order Data: {missing}")
@@ -272,7 +272,7 @@ def preprocess_order_data(df: pd.DataFrame) -> pd.DataFrame:
     rename_map = {
         "Shipped Time": "Date",
         "Buyer Username": "Customer ID",
-        "Seller SKU": "SKU",
+        "SKU ID": "SKU",
         "Order ID": "Order ID",
         "SKU Subtotal After Discount": "Order Total"
     }
@@ -1749,7 +1749,7 @@ def main():
                             needed_cols = [
                                 "Shipped Time",
                                 "Buyer Username",
-                                "Seller SKU",
+                                "SKU ID",
                                 "Order ID",
                                 "SKU Subtotal After Discount"
                             ]
@@ -1827,7 +1827,7 @@ def main():
                     <strong>Required Columns (any missing columns trigger an error):</strong><br/>
                     <strong>1:</strong> Shipped Time (or a column named "Order Date" will auto-rename)<br/>
                     <strong>2:</strong> Buyer Username (or "Customer ID")<br/>
-                    <strong>3:</strong> Seller SKU<br/>
+                    <strong>3:</strong> SKU ID<br/>
                     <strong>4:</strong> Order ID<br/>
                     <strong>5:</strong> SKU Subtotal After Discount (or "Order Total")<br/>
                 </p>
@@ -1879,7 +1879,7 @@ def main():
                     needed_cols = [
                         "Shipped Time",
                         "Buyer Username",
-                        "Seller SKU",
+                        "SKU ID",
                         "Order ID",
                         "SKU Subtotal After Discount"
                     ]
